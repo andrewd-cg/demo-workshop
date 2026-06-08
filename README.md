@@ -202,3 +202,25 @@ $ chainctl libraries verify demo-app:cg-libraries
 Artifact: demo-app:cg-libraries
 Verification Coverage: 93.24%
 ```
+
+---
+
+## Step 5 (Bonus): Customise the image with additional packages
+
+The traditional way to add extra OS packages is:
+
+```dockerfile
+RUN apk add libvips
+```
+
+However this requires a package manager in the final image. There are ways to install via a package manager and copy the binaries and shared libraries into the runtime stage, but it gets messy fast.
+
+Instead, Chainguard lets you customise your images using the [Custom Assembly](https://edu.chainguard.dev/chainguard/chainguard-images/features/ca-docs/custom-assembly/) feature.
+
+![Custom Assembly](custom_assembly.gif)
+
+Chainguard keeps the image up to date for you, rebuilding whenever the base image is updated or the packages you added receive updates. To use it, reference the new image repo in your Dockerfile. Both the `-dev` and runtime variants are available.
+
+> **Result:** Your customised image is available with the packages you need in a distroless format, maintained by Chainguard.
+
+Bonus Bonus: You can add your organisations custom certificates (not private certificates) to images using custom assembly in the same way. See [Custom Certificates](https://edu.chainguard.dev/chainguard/chainguard-images/features/ca-docs/custom-assembly-certs/)
