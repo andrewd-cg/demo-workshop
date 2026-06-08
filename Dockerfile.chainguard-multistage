@@ -1,0 +1,24 @@
+FROM cgr.dev/andrewd.dev/node:24-dev AS builder
+
+WORKDIR /app
+
+# We can use the --chown flag to set the ownership of the files being copied to the node user. 
+# This ensures that the node user has the necessary permissions to access and modify the files during the build process.
+COPY --chown=node:node package.json .npmrc ./
+
+RUN npm install --omit=dev
+
+COPY index.js ./
+
+# No Package Manager, No Shell or other utilities for maximum runtime security
+FROM cgr.dev/andrewd.dev/node:24-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/index.js ./index.js
+COPY --from=builder /app/package*.json ./
+
+EXPOSE 3000
+
+ENTRYPOINT ["node", "index.js"]

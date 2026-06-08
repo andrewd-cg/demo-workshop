@@ -1,0 +1,29 @@
+FROM cgr.dev/andrewd.dev/node:24-dev AS builder
+
+WORKDIR /app
+RUN chown node:node /app
+
+# We can use the --chown flag to set the ownership of the files being copied to the node user. 
+# This ensures that the node user has the necessary permissions to access and modify the files during the build process.
+COPY --chown=node:node package.json .npmrc ./
+
+# Copying the .npmrc file into an image is not recommended as it may contain sensitive information. 
+#RUN npm install --omit=dev
+# Instead, we can use Docker's build secrets to securely pass the .npmrc file during the build process. 
+# Here's how you can modify the Dockerfile to use build secrets:
+RUN --mount=type=secret,id=npmrc,target=/app/.npmrc npm install --omit=dev
+
+COPY index.js ./
+
+# No Package Manager, No Shell or other utilities for maximum runtime security
+FROM cgr.dev/andrewd.dev/node:24-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/index.js ./index.js
+COPY --from=builder /app/package*.json ./
+
+EXPOSE 3000
+
+ENTRYPOINT ["node", "index.js"]
