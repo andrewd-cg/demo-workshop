@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello from CBA Workshop!', status: 'ok' });
+  res.json({ message: 'Hello from Container Workshop!', status: 'ok' });
 });
 
 app.get('/health', (req, res) => {
