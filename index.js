@@ -14,6 +14,14 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+process.on('SIGINT', () => {
+  server.close(() => process.exit(0));
+});
+
+process.on('SIGTERM', () => {
+  server.close(() => process.exit(0));
 });
