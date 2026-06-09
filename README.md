@@ -29,7 +29,7 @@ The baseline [Dockerfile](Dockerfile) uses the official `node:24` image from Doc
 
 ```bash
 docker build -t demo-app:dockerhub .
-docker run -p 3000:3000 demo-app:dockerhub
+docker run --rm -p 3000:3000 demo-app:dockerhub
 curl http://localhost:3000/health
 ```
 
@@ -40,7 +40,7 @@ curl http://localhost:3000/health
 How many CVEs are in this image? Over 1,500! Including over 50 Critical and over 380 High.
 
 ```bash
-$ grype demo-app:dockerhub
+grype demo-app:dockerhub
  ✔ Loaded image                                                                                                       index.docker.io/library/demo-app:dockerhub
  ✔ Parsed image                                                                          sha256:d5826d1f59cf3edb9a4316bd73481264feed65983e5cda2e24aa14a06054c477
  ✔ Cataloged contents                                                                           4c258485711bdbc2c65642196967c062bfe7e2aacc68760617e11d59b3f664a6
@@ -80,7 +80,7 @@ FROM cgr.dev/andrewd.dev/node:24-dev
 
 ```bash
 docker build -f Dockerfile.chainguard -t demo-app:cg-single .
-docker run -p 3000:3000 demo-app:cg-single
+docker run --rm -p 3000:3000 demo-app:cg-single
 curl http://localhost:3000/health
 ```
 
@@ -89,7 +89,7 @@ curl http://localhost:3000/health
 ### CVE Scan Results
 
 ```bash
-$ grype demo-app:cg-single
+grype demo-app:cg-single
  ✔ Loaded image                                                                                                                               demo-app:cg-single
  ✔ Parsed image                                                                          sha256:dde0cb7dcbb25d59e21b465b6f5476f472a32346a4d0849fb68cbf1ee45fc19b
  ✔ Cataloged contents                                                                           252517d400197113533d6fe9ecc2fa09d9a5e61fc1c5acbcefbc13322231dd9c
@@ -113,15 +113,17 @@ Use a multi-stage build so `npm install` runs in a builder image, and only the p
 FROM cgr.dev/andrewd.dev/node:24-dev AS builder
 
 WORKDIR /app
-COPY package*.json ./
+COPY package.json ./
 RUN npm install --omit=dev
+COPY index.js ./
 
 # Runtime stage — minimal, no package manager, no shell
 FROM cgr.dev/andrewd.dev/node:24-slim
 
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
-COPY index.js ./
+COPY --from=builder /app/index.js ./index.js
+COPY --from=builder /app/package*.json ./
 
 EXPOSE 3000
 ENTRYPOINT ["node", "index.js"]
@@ -129,7 +131,7 @@ ENTRYPOINT ["node", "index.js"]
 
 ```bash
 docker build -f Dockerfile.chainguard-multistage -t demo-app:cg-multistage .
-docker run -p 3000:3000 demo-app:cg-multistage
+docker run --rm -p 3000:3000 demo-app:cg-multistage
 curl http://localhost:3000/health
 ```
 
@@ -138,7 +140,7 @@ curl http://localhost:3000/health
 ### CVE Scan Results
 
 ```bash
-$ grype demo-app:cg-multistage
+grype demo-app:cg-multistage
  ✔ Loaded image                                                                                                                           demo-app:cg-multistage
  ✔ Parsed image                                                                          sha256:dc93a9d187318983567a1f57a82b208e238ab0b81837f2774403accebdb3c675
  ✔ Cataloged contents                                                                           b1edec643c9ad9d906cad44bf7aa0cdb7bc11b23b3e30dd8898040acc0d0dff2
@@ -160,7 +162,7 @@ Even with a hardened image, your app's npm dependencies can carry malware or sup
 Configure `.npmrc` to pull packages from Chainguard's registry:
 
 ```bash
-$ chainctl auth configure-npm --pull-token
+chainctl auth configure-npm --pull-token
 ```
 
 Then mount the `.npmrc` as a build secret so credentials are never baked into the image:
@@ -170,9 +172,9 @@ RUN --mount=type=secret,id=npmrc,target=/app/.npmrc npm install --omit=dev
 ```
 
 ```bash
-$ docker build -f Dockerfile.chainguard-multistage-cg-libs -t demo-app:cg-libraries .
-$ docker run -p 3000:3000 demo-app:cg-libraries
-$ curl http://localhost:3000/health
+docker build -f Dockerfile.chainguard-multistage-cg-libs -t demo-app:cg-libraries .
+docker run --rm -p 3000:3000 demo-app:cg-libraries
+curl http://localhost:3000/health
 ```
 
 > **Result:** `express`, `dotenv`, and all 67 transitive dependencies are now sourced from Chainguard's verified registry. Packages are built, scanned, signed, and free of known malware before they ever reach your build. And of course, still Zero CVEs.
@@ -180,7 +182,7 @@ $ curl http://localhost:3000/health
 ### CVE Scan Results
 
 ```bash
-$ grype demo-app:cg-libraries
+grype demo-app:cg-libraries
  ✔ Loaded image                                                                                                                            demo-app:cg-libraries
  ✔ Parsed image                                                                          sha256:b81bbb7108c8bd7a9f5d7ad7b8050f5f0b390e47ee6eae8e14dbe1c1ae2f0fa5
  ✔ Cataloged contents                                                                           0f3852ddcf7b941758964e0ddbb2f4e56bff115d9dfff1461183d1cf840d466a
@@ -198,7 +200,7 @@ No vulnerabilities found
 Verify which libraries were built directly by Chainguard. The remainder come from Chainguard's secure mirror where packages undergo advanced scanning by Chainguard Sentinel and mandatory cooldown periods before serving.
 
 ```bash
-$ chainctl libraries verify demo-app:cg-libraries
+chainctl libraries verify demo-app:cg-libraries
 Artifact: demo-app:cg-libraries
 Verification Coverage: 93.24%
 ```

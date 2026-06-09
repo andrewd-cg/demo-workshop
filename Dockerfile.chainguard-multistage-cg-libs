@@ -1,11 +1,8 @@
 FROM cgr.dev/andrewd.dev/node:24-dev AS builder
 
 WORKDIR /app
-RUN chown node:node /app
 
-# We can use the --chown flag to set the ownership of the files being copied to the node user. 
-# This ensures that the node user has the necessary permissions to access and modify the files during the build process.
-COPY --chown=node:node package.json .npmrc ./
+COPY package.json ./
 
 # Copying the .npmrc file into an image is not recommended as it may contain sensitive information. 
 #RUN npm install --omit=dev
