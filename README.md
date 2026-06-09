@@ -25,7 +25,7 @@ A minimal Express API with two endpoints:
 
 ## Step 1: Build the starting Dockerfile (public Docker Hub)
 
-The baseline `Dockerfile` uses the official `node:24` image from Docker Hub.
+The baseline [Dockerfile](Dockerfile) uses the official `node:24` image from Docker Hub.
 
 ```bash
 docker build -t demo-app:dockerhub .
@@ -68,7 +68,7 @@ docker run --rm --entrypoint find demo-app:dockerhub /app/node_modules -maxdepth
 
 ## Step 2: Convert to Chainguard Node image (single-stage)
 
-A single-stage swap of the base image. `Dockerfile.chainguard` uses `cgr.dev/andrewd.dev/node:24-dev`, a Chainguard image with only what's needed to build and run Node dependencies. The image is minimal by design but still includes a shell and package manager for the build. We'll remove those in Step 3.
+A single-stage swap of the base image. [Dockerfile.chainguard](Dockerfile.chainguard) uses `cgr.dev/andrewd.dev/node:24-dev`, a Chainguard image with only what's needed to build and run Node dependencies. The image is minimal by design but still includes a shell and package manager for the build. We'll remove those in Step 3.
 
 ```dockerfile
 # Before
@@ -106,7 +106,7 @@ No vulnerabilities found
 
 ## Step 3: Convert to Chainguard Node image (multi-stage)
 
-Use a multi-stage build so `npm install` runs in a builder image, and only the production artifacts are copied into the minimal runtime image. No package manager, no shell, no additional dependencies that aren't required. Less attack surface and less patching ongoing.
+Use a multi-stage build so `npm install` runs in a builder image, and only the production artifacts are copied into the minimal runtime image. No package manager, no shell, no additional dependencies that aren't required. Less attack surface and less patching ongoing. See [Dockerfile.chainguard-multistage](Dockerfile.chainguard-multistage).
 
 ```dockerfile
 # Build stage — includes npm
@@ -155,7 +155,7 @@ No vulnerabilities found
 
 ## Step 4: Use Chainguard's secure JavaScript libraries
 
-Even with a hardened image, your app's npm dependencies can carry malware or supply chain compromises. Chainguard Libraries provides a curated, audited npm registry. Packages are either built directly by Chainguard or sourced from a secure mirror with advanced malware scanning and cooldown periods.
+Even with a hardened image, your app's npm dependencies can carry malware or supply chain compromises. Chainguard Libraries provides a curated, audited npm registry. Packages are either built directly by Chainguard or sourced from a secure mirror with advanced malware scanning and cooldown periods. See [Dockerfile.chainguard-multistage-cg-libs](Dockerfile.chainguard-multistage-cg-libs).
 
 Configure `.npmrc` to pull packages from Chainguard's registry:
 
@@ -215,7 +215,7 @@ RUN apk add libvips
 
 However this requires a package manager in the final image. There are ways to install via a package manager and copy the binaries and shared libraries into the runtime stage, but it gets messy fast.
 
-Instead, Chainguard lets you customise your images using the [Custom Assembly](https://edu.chainguard.dev/chainguard/chainguard-images/features/ca-docs/custom-assembly/) feature.
+Instead, Chainguard lets you customise your images using the [Custom Assembly](https://edu.chainguard.dev/chainguard/chainguard-images/features/ca-docs/custom-assembly/) feature. See [Dockerfile.chainguard-multistage-cg-libs-ca](Dockerfile.chainguard-multistage-cg-libs-ca) for an example.
 
 ![Custom Assembly](custom_assembly.gif)
 
